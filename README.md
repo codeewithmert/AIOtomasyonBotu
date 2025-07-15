@@ -156,7 +156,6 @@ flowchart TB
     %% Raporlama
     REPORT -- "Rapor" --> UI
 ```
-```
 
 ---
 
