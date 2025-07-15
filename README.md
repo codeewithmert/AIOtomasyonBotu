@@ -450,7 +450,7 @@ alerts:
 
 ```bash
 # Repository'yi fork edin
-git clone https://github.com/your-username/koordinatci.git
+git clone https://github.com/codeewithmert/AIOtomasyonBotu.git
 cd koordinatci
 
 # Development branch oluşturun
