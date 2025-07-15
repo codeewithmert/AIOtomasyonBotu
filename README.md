@@ -86,7 +86,7 @@
 ### 📁 Proje Yapısı
 
 ```
-koordinatçı/
+AIOtomasyonBotu/
 ├── 📁 src/                    # Ana kaynak kodları
 │   ├── 📁 api/               # REST API katmanı
 │   │   ├── 📁 middleware/    # API middleware'leri
