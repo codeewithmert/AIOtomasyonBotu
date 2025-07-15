@@ -15,7 +15,7 @@
 > 
 > **Mikroservis mimarisi, yüksek performans, güvenlik ve esnek entegrasyon olanakları ile kurumsal ihtiyaçlara tam uyum sağlar. Gelişmiş izleme, otomasyon, veri işleme ve makine öğrenmesi pipeline'ları ile uçtan uca otomasyon sağlar.**
 
-[📖 Dokümantasyon](docs/) • [🐛 Issue Bildir](https://github.com/your-username/koordinatci/issues) • [💬 Tartışma](https://github.com/your-username/koordinatci/discussions) • [🔒 Güvenlik](SECURITY.md)
+[📖 Dokümantasyon](docs/) • [🐛 Issue Bildir](https://github.com/codeewithmert/AIOtomasyonBotu/issues) • [💬 Tartışma](https://github.com/codeewithmert/AIOtomasyonBotu/discussions) • [🔒 Güvenlik](SECURITY.md)
 
 </div>
 
@@ -113,45 +113,49 @@ koordinatçı/
 ### 🔄 Sistem Mimarisi
 
 ```mermaid
-flowchart TD
-    subgraph Kullanıcı
-        A1[Web Dashboard]
-        A2[REST API]
-        A3[CLI]
+flowchart TB
+    %% KATMANLAR
+    subgraph K1["KULLANICI KATMANI"]
+        UI["🖥️ Web Dashboard"]
+        API["🌐 REST API"]
+        CLI["💻 Komut Satırı"]
     end
-    subgraph Uygulama Katmanı
-        B1[Task Scheduler]
-        B2[ML Pipeline]
-        B3[Data Collectors]
-        B4[Reporting]
-        B5[Monitoring]
+
+    subgraph K2["UYGULAMA KATMANI"]
+        SCHED["⏰ Task Scheduler\n(Görev Zamanlayıcı)"]
+        ML["🤖 ML Pipeline\n(Model Eğitimi/Tahmin)"]
+        COLLECT["📥 Data Collectors\n(Veri Toplama)"]
+        REPORT["📄 Reporting\n(Raporlama)"]
     end
-    subgraph Veri Katmanı
-        C1[(PostgreSQL)]
-        C2[(Redis)]
-        C3[(MongoDB)]
-        C4[(Dosya Sistemi)]
+
+    subgraph K3["VERİ KATMANI"]
+        PG["🗄️ PostgreSQL"]
+        RED["⚡ Redis"]
+        FS["📂 Dosya Sistemi"]
     end
-    A1-->|WebSocket/API|A2
-    A2-->|HTTP/JSON|B1
-    A2-->|HTTP/JSON|B2
-    A2-->|HTTP/JSON|B3
-    B1-->|Task|B2
-    B1-->|Task|B3
-    B2-->|Model/Veri|C1
-    B3-->|Veri|C1
-    B3-->|Cache|C2
-    B4-->|Rapor|A1
-    B5-->|Metrik|A1
-    B1-->|Log|B5
-    B2-->|Log|B5
-    B3-->|Log|B5
-    B4-->|Log|B5
-    B5-->|Alert|A1
-    C1-->|Veri|B2
-    C2-->|Cache|B3
-    C3-->|Büyük Veri|B3
-    C4-->|Dosya|B3
+
+    %% Kullanıcıdan API'ye
+    UI -- "WebSocket/HTTP" --> API
+    CLI -- "Komut" --> API
+
+    %% API'den uygulama katmanına
+    API -- "İstekler" --> SCHED
+    API -- "İstekler" --> ML
+    API -- "İstekler" --> COLLECT
+
+    %% Scheduler'dan diğerlerine
+    SCHED -- "Zamanlanmış Görev" --> ML
+    SCHED -- "Zamanlanmış Görev" --> COLLECT
+
+    %% ML ve Collectors veri katmanına erişir
+    ML -- "Veri Okuma/Yazma" --> PG
+    COLLECT -- "Veri Okuma/Yazma" --> PG
+    COLLECT -- "Cache" --> RED
+    COLLECT -- "Dosya" --> FS
+
+    %% Raporlama
+    REPORT -- "Rapor" --> UI
+```
 ```
 
 ---
@@ -498,12 +502,6 @@ A: Prometheus, Grafana ve alerting desteğiyle kapsamlı monitoring sağlar.
 
 ---
 
-## 🖼️ Demo ve Ekran Görüntüleri
-
-> **Demo ve ekran görüntüleri yakında burada olacak!**
-> 
-> Siz de kendi ekran görüntülerinizi veya kullanım videolarınızı paylaşabilirsiniz.
-
 ## 📚 Kaynaklar & İleri Okuma
 - [FastAPI](https://fastapi.tiangolo.com/)
 - [Scikit-learn](https://scikit-learn.org/)
@@ -527,9 +525,9 @@ Bu proje MIT lisansı ile lisanslanmıştır. Detaylar için [LICENSE](LICENSE) 
 
 ## 📞 İletişim
 
-- **Email**: your-email@example.com
-- **GitHub**: [@your-username](https://github.com/your-username)
-- **LinkedIn**: [Your Name](https://linkedin.com/in/your-profile)
+- **Email**: mertdmrrrs@hotmail.com
+- **GitHub**: [@codeewithmert](https://github.com/codeewithmert)
+- **LinkedIn**: [Mert Demir](https://www.linkedin.com/in/mert-demir-9a9612373/)
 
 ---
 
