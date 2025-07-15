@@ -1,0 +1,258 @@
+# AI Automation Bot - Örnek Konfigürasyon Dosyası
+# Bu dosyayı config.yaml olarak kopyalayın ve kendi ayarlarınızla düzenleyin
+
+# Uygulama ayarları
+app:
+  name: "AI Automation Bot"
+  version: "1.0.0"
+  debug: false
+  environment: "development"  # development, staging, production
+
+# Veritabanı ayarları
+database:
+  host: "localhost"
+  port: 5432
+  name: "automation_db"
+  user: "user"
+  password: ""  # Environment variable'dan alınacak: DB_PASSWORD
+  pool_size: 10
+  max_overflow: 20
+
+# API ayarları
+api:
+  base_url: "https://api.example.com"
+  timeout: 30
+  retry_attempts: 3
+  api_key: ""  # Environment variable'dan alınacak: API_KEY
+
+# Makine öğrenmesi ayarları
+ml:
+  models:
+    - "random_forest"
+    - "xgboost"
+    - "lightgbm"
+  
+  hyperparameter_optimization:
+    method: "optuna"
+    n_trials: 100
+    timeout: 3600
+  
+  evaluation:
+    test_size: 0.2
+    cv_folds: 5
+    random_state: 42
+  
+  model_storage: "models/"
+
+# Otomasyon ayarları
+automation:
+  scheduler:
+    timezone: "UTC"
+    max_workers: 4
+    job_defaults:
+      coalesce: true
+      max_instances: 3
+  
+  tasks:
+    data_collection:
+      schedule: "0 */6 * * *"  # Her 6 saatte bir
+      enabled: true
+      retry_attempts: 3
+      timeout: 300  # 5 dakika
+    
+    model_training:
+      schedule: "0 2 * * *"    # Her gün saat 2'de
+      enabled: true
+      retry_attempts: 3
+      timeout: 1800  # 30 dakika
+    
+    report_generation:
+      schedule: "0 9 * * *"    # Her gün saat 9'da
+      enabled: true
+      retry_attempts: 2
+      timeout: 600  # 10 dakika
+
+# Raporlama ayarları
+reporting:
+  output_dir: "reports/"
+  formats: ["pdf", "excel", "html"]
+  templates_dir: "templates/"
+  
+  notifications:
+    email:
+      enabled: false
+      smtp_server: "smtp.gmail.com"
+      smtp_port: 587
+      username: ""  # Environment variable'dan alınacak: EMAIL_USERNAME
+      password: ""  # Environment variable'dan alınacak: EMAIL_PASSWORD
+      recipients: ["admin@example.com"]
+    
+    slack:
+      enabled: false
+      webhook_url: ""  # Environment variable'dan alınacak: SLACK_WEBHOOK_URL
+      channel: "#automation"
+
+# Güvenlik ayarları
+security:
+  encryption_key: ""  # Environment variable'dan alınacak: ENCRYPTION_KEY
+  jwt_secret: ""      # Environment variable'dan alınacak: JWT_SECRET
+  session_timeout: 3600
+
+# Loglama ayarları
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/automation_bot.log"
+  max_size: 10485760  # 10MB
+  backup_count: 5
+  rotation: "1 day"
+
+# Veri toplama ayarları
+data_collection:
+  # API veri toplama
+  api_sources:
+    - name: "external_api_1"
+      url: "https://api1.example.com/data"
+      method: "GET"
+      headers:
+        Authorization: "Bearer ${API_KEY_1}"
+      params:
+        limit: 1000
+      schedule: "0 */2 * * *"  # Her 2 saatte bir
+    
+    - name: "external_api_2"
+      url: "https://api2.example.com/data"
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+      data:
+        query: "all"
+      schedule: "0 1 * * *"  # Her gün saat 1'de
+  
+  # Web scraping
+  web_sources:
+    - name: "news_website"
+      url: "https://news.example.com"
+      selectors:
+        title: "h1"
+        content: "article p"
+        links: "links:a"
+      schedule: "0 */4 * * *"  # Her 4 saatte bir
+      use_selenium: false
+    
+    - name: "ecommerce_site"
+      url: "https://shop.example.com"
+      selectors:
+        products: "div.product"
+        prices: "span.price"
+        ratings: "div.rating"
+      schedule: "0 3 * * *"  # Her gün saat 3'te
+      use_selenium: true
+      wait_for: "div.product"
+
+# Model eğitimi ayarları
+model_training:
+  # Veri önişleme
+  preprocessing:
+    handle_missing: "median"  # mean, median, mode, drop
+    scale_features: true
+    encode_categorical: true
+    feature_selection: true
+    max_features: 100
+  
+  # Model seçimi
+  model_selection:
+    method: "auto"  # auto, manual, ensemble
+    evaluation_metric: "accuracy"  # accuracy, f1, precision, recall, r2, mse
+    cross_validation: true
+    cv_folds: 5
+  
+  # Hiperparametre optimizasyonu
+  hyperparameter_optimization:
+    enabled: true
+    method: "optuna"  # optuna, grid_search, random_search
+    n_trials: 100
+    timeout: 3600
+    early_stopping: true
+  
+  # Model değerlendirme
+  evaluation:
+    test_size: 0.2
+    random_state: 42
+    metrics: ["accuracy", "precision", "recall", "f1"]
+    confusion_matrix: true
+    feature_importance: true
+
+# Performans izleme
+monitoring:
+  enabled: true
+  metrics:
+    - "cpu_usage"
+    - "memory_usage"
+    - "disk_usage"
+    - "response_time"
+    - "error_rate"
+  
+  alerts:
+    cpu_threshold: 80  # %
+    memory_threshold: 85  # %
+    disk_threshold: 90  # %
+    error_rate_threshold: 5  # %
+  
+  dashboard:
+    enabled: true
+    port: 8080
+    host: "localhost"
+
+# Backup ve yedekleme
+backup:
+  enabled: true
+  schedule: "0 2 * * 0"  # Her Pazar saat 2'de
+  retention_days: 30
+  include:
+    - "models/"
+    - "data/"
+    - "logs/"
+    - "reports/"
+  exclude:
+    - "*.tmp"
+    - "*.log"
+  destination: "backups/"
+
+# Entegrasyon ayarları
+integrations:
+  # AWS S3
+  aws_s3:
+    enabled: false
+    bucket_name: "ai-automation-bot"
+    region: "us-east-1"
+    access_key: ""  # Environment variable'dan alınacak: AWS_ACCESS_KEY
+    secret_key: ""  # Environment variable'dan alınacak: AWS_SECRET_KEY
+  
+  # Azure Blob Storage
+  azure_blob:
+    enabled: false
+    account_name: "ai-automation-bot"
+    container_name: "data"
+    connection_string: ""  # Environment variable'dan alınacak: AZURE_CONNECTION_STRING
+  
+  # Google Cloud Storage
+  gcs:
+    enabled: false
+    bucket_name: "ai-automation-bot"
+    project_id: "your-project-id"
+    credentials_file: "path/to/credentials.json"
+
+# Geliştirici ayarları
+development:
+  debug_mode: false
+  hot_reload: false
+  profiling: false
+  test_mode: false
+  
+  # Test ayarları
+  testing:
+    test_data_size: 1000
+    mock_external_apis: true
+    fast_training: true
+    skip_heavy_tasks: true 

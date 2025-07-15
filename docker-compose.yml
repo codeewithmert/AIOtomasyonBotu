@@ -1,0 +1,310 @@
+# AI Automation Bot - Docker Compose
+# Tam ortam kurulumu için docker-compose dosyası
+
+version: '3.8'
+
+services:
+  # Ana AI Automation Bot servisi
+  ai-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ai-automation-bot
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=automation_db
+      - DB_USER=ai_bot_user
+      - DB_PASSWORD=${DB_PASSWORD:-ai_bot_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - API_KEY=${API_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./models:/app/models
+      - ./reports:/app/reports
+      - ./backups:/app/backups
+      - ./config:/app/config
+    ports:
+      - "8000:8000"  # API port
+      - "8080:8080"  # Dashboard port
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ai-bot-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL veritabanı
+  postgres:
+    image: postgres:13-alpine
+    container_name: ai-bot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: automation_db
+      POSTGRES_USER: ai_bot_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ai_bot_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - ai-bot-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_bot_user -d automation_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache ve message broker
+  redis:
+    image: redis:6-alpine
+    container_name: ai-bot-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - ai-bot-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB (opsiyonel - büyük veri için)
+  mongodb:
+    image: mongo:5.0
+    container_name: ai-bot-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ai_bot_user
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-mongo_password}
+      MONGO_INITDB_DATABASE: automation_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+    ports:
+      - "27017:27017"
+    networks:
+      - ai-bot-network
+    profiles:
+      - full-stack
+
+  # Elasticsearch (opsiyonel - log analizi için)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    container_name: ai-bot-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - ai-bot-network
+    profiles:
+      - full-stack
+
+  # Kibana (opsiyonel - Elasticsearch dashboard)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.0
+    container_name: ai-bot-kibana
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - ai-bot-network
+    profiles:
+      - full-stack
+
+  # Prometheus (opsiyonel - monitoring)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ai-bot-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - ai-bot-network
+    profiles:
+      - monitoring
+
+  # Grafana (opsiyonel - monitoring dashboard)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ai-bot-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - ai-bot-network
+    profiles:
+      - monitoring
+
+  # Nginx (opsiyonel - reverse proxy)
+  nginx:
+    image: nginx:alpine
+    container_name: ai-bot-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - ai-bot
+    networks:
+      - ai-bot-network
+    profiles:
+      - production
+
+  # Celery worker (opsiyonel - background tasks)
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ai-bot-celery-worker
+    restart: unless-stopped
+    command: ["celery", "-A", "src.automation.celery_app", "worker", "--loglevel=info"]
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=automation_db
+      - DB_USER=ai_bot_user
+      - DB_PASSWORD=${DB_PASSWORD:-ai_bot_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./models:/app/models
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ai-bot-network
+    profiles:
+      - production
+
+  # Celery beat (opsiyonel - scheduled tasks)
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ai-bot-celery-beat
+    restart: unless-stopped
+    command: ["celery", "-A", "src.automation.celery_app", "beat", "--loglevel=info"]
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=automation_db
+      - DB_USER=ai_bot_user
+      - DB_PASSWORD=${DB_PASSWORD:-ai_bot_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ai-bot-network
+    profiles:
+      - production
+
+  # Flower (opsiyonel - Celery monitoring)
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ai-bot-flower
+    restart: unless-stopped
+    command: ["celery", "-A", "src.automation.celery_app", "flower", "--port=5555"]
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    networks:
+      - ai-bot-network
+    profiles:
+      - production
+
+# Volumes
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# Networks
+networks:
+  ai-bot-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 
